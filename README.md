@@ -1,40 +1,134 @@
-# Hands-On Introduction: Data Engineering
-This is the repository for the LinkedIn Learning course Hands-On Introduction: Data Engineering. The full course is available from [LinkedIn Learning][lil-course-url].
+# LinkedIn Learning: Hands-on Introduction to Data Engineering - Notes
+```
+python --version
 
-![Hands-On Introduction: Data Engineering][lil-thumbnail-url] 
+# Install Apache Airflow
+## Based on the Python version, use the following command to install Airflow:
 
-Today’s world is flooded with data, which puts businesses up to task. In response, organizations, companies, and employees around the world have adopted data-driven decision-making techniques. However, the vast majority of new data practitioners haven’t been formally trained. They don’t know how to build and construct stable data pipelines that can function effectively at speed and scale. Moreover, they haven't been given the framework(s) to distill data-oriented tasks into discrete components.
+export AIRFLOW_HOME="/workspaces/hands-on-introduction-data-engineering-4395021/airflow"
+pip install "apache-airflow==2.6.3" --constraint "https://raw.githubusercontent.com/apache/airflow/constraints-2.6.3/constraints-3.10.txt"
 
-In this course, instructor Vinoo Ganesh gives you an overview of the fundamental skills you need to know to solve complex data problems in a scalable, productive way. Explore the core principles of the data engineer toolkit—including ELT, OLTP/OLAP, orchestration, DAGs, and more—as well as how to set up a local Apache Airflow deployment and full-scale data engineering ETL pipeline. Along the way, Vinoo helps you boost your technical skill set using real-world, hands-on scenarios.
+#Viewing Airflow Functions
+#To view the full set of available functions, use:
+
+airflow
+
+#Airflow Database Configuration
+##By default, Airflow uses an SQLite database located at:
+
+airflow/airflow.db
+
+#Initializing the Database
+airflow db init
+Note: In real life, we would typically use AWS RDS or a standalone service, not SQLite.
+
+#Creating an Admin User
+airflow users create \
+    --username admin \
+    --firstname firstname \
+    --lastname lastname \
+    --role Admin \
+    --email admin@example.com \
+    --password your_password
+
+#Webserver Configuration
+1. Open webserver_config.py under the airflow directory.
+2. Set WTF_CSRF_enabled to false.
+##Running the Web Server
+airflow webserver -d
+Access the webserver via the URL format:
+
+https://<your-airflow-instance>.app.github.dev/home
+Scheduler Warning
+If the scheduler is not running, start it using:
+
+airflow scheduler
+Stopping the Scheduler and Webserver
+Find the process IDs for webserver and scheduler using:
+
+ps aux | grep "airflow webserver" | grep -v grep
+ps aux | grep "airflow scheduler" | grep -v grep
+To stop the webserver and scheduler, use:
 
 
 
-## Instructions
-This repository has branches for each of the videos in the course. You can use the branch pop up menu in github to switch to a specific branch and take a look at the course at that stage, or you can add `/tree/BRANCH_NAME` to the URL to go to the branch you want to access.
-
-## Branches
-The branches are structured to correspond to the videos in the course. The naming convention is `CHAPTER#_MOVIE#`. As an example, the branch named `02_03` corresponds to the second chapter and the third video in that chapter. 
-Some branches will have a beginning and an end state. These are marked with the letters `b` for "beginning" and `e` for "end". The `b` branch contains the code as it is at the beginning of the movie. The `e` branch contains the code as it is at the end of the movie. The `main` branch holds the final state of the code when in the course.
-
-When switching from one exercise files branch to the next after making changes to the files, you may get a message like this:
-
-    error: Your local changes to the following files would be overwritten by checkout:        [files]
-    Please commit your changes or stash them before you switch branches.
-    Aborting
-
-To resolve this issue:
-	
-    Add changes to git using this command: git add .
-	Commit changes using this command: git commit -m "some message"
+kill <PID>
+or
 
 
-### Instructor
-
-[Vinoo Ganesh](https://www.vinoo.io)
-                            
 
 
-Check out my other courses on [LinkedIn Learning](https://www.linkedin.com/learning/instructors/vinoo-ganesh).
+pkill -9 -f "airflow"
+Optimal Airflow Setup for Organization
+To view where the airflow.cfg file is located, run:
 
-[lil-course-url]: https://www.linkedin.com/learning/hands-on-introduction-data-engineering?dApp=59033956&leis=LAA
-[lil-thumbnail-url]: https://media.licdn.com/dms/image/D560DAQG4v5bQSL1ZAg/learning-public-crop_675_1200/0/1682529028787?e=2147483647&v=beta&t=fogaI1G7xbC_Cin70-3NwxbdW2WaE-heDOliyoTo-R4
+
+
+
+echo $AIRFLOW_HOME
+List available categories in airflow.cfg:
+
+
+
+
+cat airflow/airflow.cfg | grep -o '\[.*\]'
+Changing Example DAGS
+To disable example DAGS, set load_examples to false in airflow.cfg and restart Airflow.
+
+Task 1: Creating a Single-Node DAG
+Check where Airflow is expecting the DAG to be:
+
+
+
+cat airflow/airflow.cfg | grep "dags_folder"
+Create a new .py file in the dags folder with a small message.
+Run the DAG:
+
+
+
+
+python -W ignore airflow/dags/one_task_dag.py
+To view the message:
+
+
+
+cat lab/temp/create-this-file.txt
+Task 2: Creating a Two-Task DAG (ETL Example)
+For the ETL example, follow these steps:
+
+E: Extracting Data
+Download the list of top-level domains:
+
+
+
+
+wget -c https://datahub.io/core/top-level-domain-names/_r/-/data/top-level-domain-names.csv -O /workspaces/hands-on-introduction-data-engineering-4395021/lab/manual-extract-data.csv
+T: Transforming Data (Finding Generic TLDs)
+Using Python and Pandas:
+
+python
+
+
+from datetime import date
+import pandas as pd
+
+df = pd.read_csv("manual-extract-data.csv")
+generic_type_df = df[df["Type"]=="generic"]
+
+# Add today's date as a new column
+today = date.today()
+generic_type_df["Date"] = today.strftime("%Y-%m-%d")
+
+# Save the transformed data
+generic_type_df.to_csv("manual-transform-data.csv", index=False)
+L: Loading Data into Database
+Use SQLite:
+
+
+
+
+sqlite3 manual-load-db.db
+.mode csv
+.import --skip 1 manual-transform-data.csv top_level_domains
+Automating the Process
+Create a DAG that automates the ETL process by linking all tasks (Extract, Transform, Load).
